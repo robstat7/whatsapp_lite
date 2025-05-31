@@ -25,7 +25,7 @@
             const user = document.getElementById("username").value.trim();
             if (!user) return;
 
-            ws = new WebSocket(`ws://${location.host}/ws`);
+            ws = new WebSocket(`ws://0.0.0.0:10000/ws`);
 
             ws.onopen = () => {
                 ws.send(user); // send username
