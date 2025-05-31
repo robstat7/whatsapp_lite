@@ -1,0 +1,81 @@
+<body>
+    <h2>WhatsApp Lite</h2>
+    <input id="username" placeholder="Your name">
+    <button onclick="join()">Join</button><br><br>
+
+    <div style="display: flex;">
+        <div style="width: 200px; border: 1px solid #000; margin-right: 10px; padding: 10px;">
+            <h4>Online Users</h4>
+            <ul id="users"></ul>
+        </div>
+
+        <div style="flex: 1;">
+            <div id="chatbox" style="border:1px solid #000; height:300px; overflow:auto; padding: 10px;"></div>
+            <div id="typing" style="font-style: italic; color: gray;"></div><br>
+            <input id="msg" placeholder="Message..." oninput="notifyTyping()">
+            <button onclick="send()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        let ws;
+        let typingTimeout;
+
+        function join() {
+            const user = document.getElementById("username").value.trim();
+            if (!user) return;
+
+            ws = new WebSocket(`ws://${location.host}/ws`);
+
+            ws.onopen = () => {
+                ws.send(user); // send username
+            };
+
+            ws.onmessage = (event) => {
+                const chatbox = document.getElementById("chatbox");
+                const usersList = document.getElementById("users");
+                const typingDiv = document.getElementById("typing");
+
+                if (event.data.startsWith("__USERS__:")) {
+                    const users = event.data.replace("__USERS__:", "").split(",");
+                    usersList.innerHTML = "";
+                    users.forEach(u => {
+                        const li = document.createElement("li");
+                        li.textContent = u;
+                        usersList.appendChild(li);
+                    });
+                } else if (event.data.startsWith("__TYPING__:")) {
+                    const typingUser = event.data.replace("__TYPING__:", "");
+                    typingDiv.innerText = `${typingUser} is typing...`;
+
+                    clearTimeout(typingTimeout);
+                    typingTimeout = setTimeout(() => {
+                        typingDiv.innerText = "";
+                    }, 2000);
+                } else {
+                    const div = document.createElement("div");
+                    div.className = "msg";
+                    div.innerText = event.data;
+                    chatbox.appendChild(div);
+                    chatbox.scrollTop = chatbox.scrollHeight;
+                }
+            };
+        }
+
+        function send() {
+            const msg = document.getElementById("msg").value.trim();
+            const user = document.getElementById("username").value.trim();
+            if (msg && ws && ws.readyState === 1) {
+                ws.send(`[${user}] ${msg}`);
+                document.getElementById("msg").value = "";
+            }
+        }
+
+        function notifyTyping() {
+            const user = document.getElementById("username").value.trim();
+            if (ws && ws.readyState === 1) {
+                ws.send(`__TYPING__:${user}`);
+            }
+        }
+    </script>
+</body>
